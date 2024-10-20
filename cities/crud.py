@@ -5,8 +5,8 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from dependencies import ListDep, CityItemDep
-from models import DbCity
-from schemas import CityBase, CityCreate, City
+from cities.models import DbCity
+from cities.schemas import CityBase, CityCreate, City
 
 
 def get_all_cities(commons: ListDep) -> List[City]:
@@ -62,7 +62,7 @@ def update_city(commons: CityItemDep, city_update: CityBase) -> City:
 def create_city(db: Session, city: CityCreate) -> City:
     city = DbCity(
         name=city.name,
-        bio=city.additional_info,
+        additional_info=city.additional_info,
     )
     db.add(city)
     db.commit()
@@ -71,7 +71,7 @@ def create_city(db: Session, city: CityCreate) -> City:
     return city
 
 
-def delete_city(commons: CityItemDep) -> str:
+def delete_city(commons: CityItemDep) -> dict[str, str]:
     db, city_id = commons
 
     city = get_city(commons)

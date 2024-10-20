@@ -1,5 +1,5 @@
 from database import SessionLocal
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, HTTPException
 from typing import Annotated
 import httpx
 from sqlalchemy.orm import Session
@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 API_KEY = os.getenv("WEATHER_API_KEY")
+
+if not API_KEY:
+    raise ValueError("Missing 'WEATHER_API_KEY'. Please check your .env file.")
 
 app = FastAPI()
 
@@ -22,7 +25,7 @@ def get_db() -> Session:
         db.close()
 
 
-def common_city_item_params(db: Session, city_id: int) -> dict:
+def common_city_item_params(city_id: int, db: Session = Depends(get_db)) -> dict:
     return {"db": db, "city_id": city_id}
 
 
@@ -45,11 +48,13 @@ ListDep = Annotated[dict, Depends(common_list_params)]
 CityItemDep = Annotated[dict, Depends(common_city_item_params)]
 
 
-async def fetch_temperature(city_id: int, city_name: str) -> float:
-    url = f"http://api.weatherapi.com/v1/current.json?key={API_KEY}&q={city_name}&aqi=no"
-
+async def fetch_temperature(city_name: str) -> float:
     async with httpx.AsyncClient() as client:
-        response = await client.get(url)
-        response.raise_for_status()
-        data = response.json()
-        return data["current"]["temp_c"]
+        try:
+            response = await client.get(f"weather_api/{city_name}")
+            response.raise_for_status()
+            data = response.json()
+            return data['temperature']
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Error fetching temperature: {str(e)}")
+

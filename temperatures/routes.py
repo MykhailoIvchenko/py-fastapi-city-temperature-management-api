@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -17,7 +17,7 @@ async def update_temperatures(db: Session = Depends(get_db)) -> dict[str, str]:
 
     for city in cities:
         try:
-            temp = await fetch_temperature(city.id, city.name)
+            temp = await fetch_temperature(city.name)
             new_temperature = DbTemperature(
                 city_id=city.id,
                 date_time=datetime.now(),
@@ -32,12 +32,7 @@ async def update_temperatures(db: Session = Depends(get_db)) -> dict[str, str]:
 
 
 @app.get("/temperatures")
-def get_temperatures(commons: ListDep) -> List[Temperature]:
-    return crud.get_temperatures(commons)
-
-
-@app.get("/temperatures")
-def get_city_temperatures(city_id: int, commons: ListDep) -> List[Temperature]:
-    commons["q"] = city_id
-
+def get_temperatures(commons: ListDep, city_id: Optional[int] = None) -> List[Temperature]:
+    if city_id:
+        commons["q"] = city_id
     return crud.get_temperatures(commons)
